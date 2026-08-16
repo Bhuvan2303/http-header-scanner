@@ -1,127 +1,512 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>HTTP Security Header Scanner</title>
+
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f7fb;
+            color: #1f2937;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 90%;
             max-width: 900px;
-            margin: 50px auto;
-            padding: 20px;
-        }
-
-        input {
-            width: 70%;
-            padding: 12px;
-            font-size: 16px;
-        }
-
-        button {
-            padding: 12px 20px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        #result {
-            margin-top: 30px;
-            padding: 20px;
-            background: #f4f4f4;
+            margin: 60px auto;
         }
 
         .header {
-            padding: 10px;
-            margin: 8px 0;
-            border-bottom: 1px solid #ccc;
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .header h1 {
+            font-size: 38px;
+            margin-bottom: 12px;
+            color: #111827;
+        }
+
+        .header p {
+            font-size: 16px;
+            color: #6b7280;
+        }
+
+        .scanner-card {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        .scan-form {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .url-input {
+            flex: 1;
+            padding: 15px 16px;
+            border: 2px solid #d1d5db;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        .url-input:focus {
+            border-color: #2563eb;
+        }
+
+        .scan-button {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 10px;
+            background: #2563eb;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .scan-button:hover {
+            background: #1d4ed8;
+        }
+
+        .scan-button:disabled {
+            background: #93c5fd;
+            cursor: not-allowed;
+        }
+
+        .message {
+            display: none;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 15px;
+        }
+
+        .message.error {
+            display: block;
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .message.info {
+            display: block;
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+
+        .results {
+            display: none;
+            margin-top: 25px;
+        }
+
+        .results-header {
+            margin-bottom: 20px;
+        }
+
+        .results-header h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .target {
+            color: #6b7280;
+            word-break: break-all;
+        }
+
+        .status {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            background: #e0f2fe;
+            color: #075985;
+        }
+
+        .headers-list {
+            display: grid;
+            gap: 14px;
+        }
+
+        .header-item {
+            padding: 18px;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            background: #f9fafb;
+        }
+
+        .header-name {
+            font-size: 17px;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        .header-status {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 6px;
         }
 
         .found {
-            color: green;
+            color: #15803d;
         }
 
         .missing {
-            color: red;
+            color: #dc2626;
+        }
+
+        .purpose {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 25px;
+            color: #9ca3af;
+            font-size: 13px;
+        }
+
+        @media (max-width: 650px) {
+            .container {
+                width: 94%;
+                margin: 30px auto;
+            }
+
+            .header h1 {
+                font-size: 30px;
+            }
+
+            .scanner-card {
+                padding: 20px;
+            }
+
+            .scan-form {
+                flex-direction: column;
+            }
+
+            .scan-button {
+                width: 100%;
+            }
         }
     </style>
 </head>
 
 <body>
 
-    <h1>HTTP Security Header Scanner</h1>
+<div class="container">
 
-    <p>Enter a website URL to check its security headers.</p>
-
-    <input
-        type="text"
-        id="url"
-        placeholder="https://example.com"
-        value="https://google.com"
-    >
-
-    <button onclick="scan()">Scan</button>
-
-    <div id="result">
-        Enter a URL and click Scan.
+    <div class="header">
+        <h1>HTTP Security Header Scanner</h1>
+        <p>Analyze a website's HTTP security headers and identify missing security controls.</p>
     </div>
 
+    <div class="scanner-card">
+
+        <!--
+            Using a real form is important.
+            Pressing ENTER inside the input will trigger submit.
+        -->
+        <form id="scanForm" class="scan-form">
+
+            <input
+                type="url"
+                id="url"
+                class="url-input"
+                placeholder="https://example.com"
+                autocomplete="url"
+                required
+            >
+
+            <button
+                type="submit"
+                id="scanButton"
+                class="scan-button"
+            >
+                Scan
+            </button>
+
+        </form>
+
+        <div id="message" class="message"></div>
+
+        <div id="results" class="results">
+
+            <div class="results-header">
+
+                <h2>Scan Results</h2>
+
+                <p class="target">
+                    Target:
+                    <strong id="target"></strong>
+                </p>
+
+                <span id="status" class="status"></span>
+
+            </div>
+
+            <div id="headersList" class="headers-list"></div>
+
+        </div>
+
+    </div>
+
+    <div class="footer">
+        HTTP Security Header Scanner • Built with Python & Flask
+    </div>
+
+</div>
+
+
 <script>
-async function scan() {
 
-    const url = document.getElementById("url").value;
-    const result = document.getElementById("result");
+    const form = document.getElementById("scanForm");
+    const urlInput = document.getElementById("url");
+    const scanButton = document.getElementById("scanButton");
 
-    if (!url) {
-        result.innerHTML = "<p>Please enter a URL.</p>";
-        return;
-    }
+    const message = document.getElementById("message");
+    const results = document.getElementById("results");
 
-    result.innerHTML = "<p>Scanning...</p>";
+    const target = document.getElementById("target");
+    const status = document.getElementById("status");
+    const headersList = document.getElementById("headersList");
 
-    try {
 
-        const response = await fetch("/scan", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ url: url })
-        });
+    /*
+     * This is the important part:
+     *
+     * Pressing ENTER inside the URL field submits the form.
+     * We don't need to manually click the Scan button.
+     */
+    form.addEventListener("submit", async function(event) {
 
-        const data = await response.json();
+        event.preventDefault();
 
-        if (data.error) {
-            result.innerHTML = `<p>Error: ${data.error}</p>`;
+        const url = urlInput.value.trim();
+
+        clearMessage();
+        results.style.display = "none";
+        headersList.innerHTML = "";
+
+        if (!url) {
+            showError("Please enter a website URL.");
+            urlInput.focus();
             return;
         }
 
-        let html = `
-            <h2>Scan Result</h2>
-            <p><strong>Target:</strong> ${data.url}</p>
-            <p><strong>HTTP Status:</strong> ${data.status}</p>
-            <hr>
-        `;
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            showError("Please enter a complete URL, for example: https://example.com");
+            urlInput.focus();
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+
+            const response = await fetch("/scan", {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    url: url
+                })
+
+            });
+
+
+            /*
+             * Try to read JSON from the Flask backend.
+             */
+            let data;
+
+            try {
+                data = await response.json();
+            } catch (jsonError) {
+                throw new Error("The server returned an unexpected response.");
+            }
+
+
+            /*
+             * Backend returned an error.
+             */
+            if (!response.ok || data.error) {
+                showError(
+                    data.error ||
+                    `Scan failed. Server returned HTTP ${response.status}.`
+                );
+
+                return;
+            }
+
+
+            /*
+             * Display successful results.
+             */
+            displayResults(data);
+
+        }
+
+        catch (error) {
+
+            console.error(error);
+
+            showError(
+                error.message ||
+                "Unable to connect to the scanner. Please try again."
+            );
+
+        }
+
+        finally {
+
+            setLoading(false);
+
+        }
+
+    });
+
+
+    function displayResults(data) {
+
+        results.style.display = "block";
+
+        target.textContent = data.url || "Unknown";
+
+        status.textContent = `HTTP Status: ${data.status ?? "Unknown"}`;
+
+        headersList.innerHTML = "";
+
+
+        if (!data.headers || Object.keys(data.headers).length === 0) {
+
+            headersList.innerHTML = `
+                <div class="header-item">
+                    <div class="header-name">
+                        No security header information was returned.
+                    </div>
+                </div>
+            `;
+
+            return;
+        }
+
 
         for (const [header, info] of Object.entries(data.headers)) {
 
-            html += `
-                <div class="header">
-                    <strong>${header}</strong>
-                    <span class="${info.found ? "found" : "missing"}">
-                        ${info.found ? "✓ FOUND" : "✗ MISSING"}
-                    </span>
-                    <br>
-                    <small>${info.purpose}</small>
+            const item = document.createElement("div");
+
+            item.className = "header-item";
+
+
+            const isFound = info.found === true;
+
+            const statusText = isFound ? "✓ FOUND" : "✕ MISSING";
+
+            const statusClass = isFound ? "found" : "missing";
+
+
+            item.innerHTML = `
+                <div class="header-name">
+                    ${escapeHTML(header)}
+                </div>
+
+                <div class="header-status ${statusClass}">
+                    ${statusText}
+                </div>
+
+                <div class="purpose">
+                    ${escapeHTML(info.purpose || "Security control")}
                 </div>
             `;
+
+
+            headersList.appendChild(item);
+
         }
 
-        result.innerHTML = html;
-
-    } catch (error) {
-
-        result.innerHTML =
-            `<p>Error connecting to scanner: ${error}</p>`;
     }
-}
+
+
+    function setLoading(loading) {
+
+        scanButton.disabled = loading;
+
+        if (loading) {
+
+            scanButton.textContent = "Scanning...";
+            showInfo("Scanning the target website...");
+
+        } else {
+
+            scanButton.textContent = "Scan";
+
+        }
+
+    }
+
+
+    function showError(text) {
+
+        message.className = "message error";
+        message.textContent = "Error: " + text;
+
+    }
+
+
+    function showInfo(text) {
+
+        message.className = "message info";
+        message.textContent = text;
+
+    }
+
+
+    function clearMessage() {
+
+        message.className = "message";
+        message.textContent = "";
+
+    }
+
+
+    /*
+     * Prevent HTML returned from a website/header
+     * from being interpreted as HTML in our page.
+     */
+    function escapeHTML(value) {
+
+        const div = document.createElement("div");
+
+        div.textContent = String(value);
+
+        return div.innerHTML;
+
+    }
+
 </script>
 
 </body>
