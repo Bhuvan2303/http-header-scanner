@@ -8,7 +8,6 @@ headers and checks for important security controls.
 - Checks HTTP response status
 - Checks security headers
 - Reports missing headers
-- Provides a basic security score
 
 ## Security Headers
 
@@ -22,8 +21,6 @@ headers and checks for important security controls.
 - Python
 - HTTP
 - HTML
-- CSS
-- JavaScript
 
 ## How It Works
 
