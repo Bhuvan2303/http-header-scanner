@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HTTP Security Header Scanner</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        input {
+            width: 70%;
+            padding: 12px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f4f4f4;
+        }
+
+        .header {
+            padding: 10px;
+            margin: 8px 0;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .found {
+            color: green;
+        }
+
+        .missing {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>HTTP Security Header Scanner</h1>
+
+    <p>Enter a website URL to check its security headers.</p>
+
+    <input
+        type="text"
+        id="url"
+        placeholder="https://example.com"
+        value="https://google.com"
+    >
+
+    <button onclick="scan()">Scan</button>
+
+    <div id="result">
+        Enter a URL and click Scan.
+    </div>
+
+<script>
+async function scan() {
+
+    const url = document.getElementById("url").value;
+    const result = document.getElementById("result");
+
+    if (!url) {
+        result.innerHTML = "<p>Please enter a URL.</p>";
+        return;
+    }
+
+    result.innerHTML = "<p>Scanning...</p>";
+
+    try {
+
+        const response = await fetch("/scan", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ url: url })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            result.innerHTML = `<p>Error: ${data.error}</p>`;
+            return;
+        }
+
+        let html = `
+            <h2>Scan Result</h2>
+            <p><strong>Target:</strong> ${data.url}</p>
+            <p><strong>HTTP Status:</strong> ${data.status}</p>
+            <hr>
+        `;
+
+        for (const [header, info] of Object.entries(data.headers)) {
+
+            html += `
+                <div class="header">
+                    <strong>${header}</strong>
+                    <span class="${info.found ? "found" : "missing"}">
+                        ${info.found ? "✓ FOUND" : "✗ MISSING"}
+                    </span>
+                    <br>
+                    <small>${info.purpose}</small>
+                </div>
+            `;
+        }
+
+        result.innerHTML = html;
+
+    } catch (error) {
+
+        result.innerHTML =
+            `<p>Error connecting to scanner: ${error}</p>`;
+    }
+}
+</script>
+
+</body>
+</html>
